@@ -6,7 +6,7 @@ Backend: Google Apps Script + Google Sheets
 import React, { useEffect, useState } from "react";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbxgV7aRpuo0al3UmcQuDz7CZ_KOM3m2z70klW8efVLQNYz2xQtjaYzm7ng-dZDl13uA/exec";
+  "https://script.google.com/macros/s/AKfycbx_E3njVwxtTJRjW-sm9tTkOsI7VAobp6GgTPb_HowWRm4ag0LkrmQ24PGRFjUN6VzO/exec";
 
 /* ===================== ESTILOS ===================== */
 const styles = `
@@ -59,7 +59,8 @@ export default function App() {
 
   const [name, setName] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [pago, setPago] = useState("");
+  const [medioPago, setMedioPago] = useState("");
+  const [estado, setEstado] = useState("reservado");
   const [obs, setObs] = useState("");
 
   const weekKey = weekStart.toISOString().slice(0, 10);
@@ -103,7 +104,8 @@ export default function App() {
     fd.append("hora", minutesToTime(slot));
     fd.append("cliente", name);
     fd.append("telefono", telefono);
-    fd.append("medio_pago", pago || "Reserva");
+    fd.append("estado", estado);
+    fd.append("medio_pago", medioPago || "");
     fd.append("monto", getPriceForSlot(slot));
     fd.append("observaciones", obs);
 
@@ -121,7 +123,8 @@ export default function App() {
     setSelected({ dayIndex, slot });
     setName("");
     setTelefono("");
-    setPago("");
+    setMedioPago("");
+    setEstado("reservado");
     setObs("");
   };
 
@@ -180,9 +183,13 @@ export default function App() {
             <input className="input" placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
             <input className="input" placeholder="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
 
-            <select className="input" value={pago} onChange={(e) => setPago(e.target.value)}>
-              <option value="">Estado del pago…</option>
-              <option value="Reserva">Reserva / Seña</option>
+            <select className="input" value={estado} onChange={(e) => setEstado(e.target.value)}>
+              <option value="reservado">Reserva / Seña</option>
+              <option value="pagado">Pagado</option>
+            </select>
+
+            <select className="input" value={medioPago} onChange={(e) => setMedioPago(e.target.value)}>
+              <option value="">Medio de pago…</option>
               <option value="Efectivo">Efectivo</option>
               <option value="MercadoPago">MercadoPago</option>
               <option value="Transferencia">Transferencia</option>
