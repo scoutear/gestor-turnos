@@ -92,7 +92,7 @@ export default function App() {
 
   const weekKey = startOfWeek(weekStart).toISOString().slice(0, 10);
 
-  /* ======= CARGAR (CORRECTO) ======= */
+  /* ======= CARGAR ======= */
   const cargarReservas = () => {
     fetch(`${API_URL}?action=reservas`)
       .then((r) => r.json())
@@ -101,10 +101,8 @@ export default function App() {
 
         rows.forEach((r) => {
           const wk = startOfWeekFromString(r.fecha);
-
           const date = new Date(r.fecha + "T12:00:00");
           const dayIndex = (date.getDay() + 6) % 7;
-
           const [h, m] = r.hora.split(":").map(Number);
           const startSlot = h * 60 + m;
 
@@ -159,6 +157,14 @@ export default function App() {
     }
   };
 
+  const toggleCell = (dayIndex, slot) => {
+    setSelected({ dayIndex, slot });
+    setName("");
+    setTelefono("");
+    setPago("");
+    setObs("");
+  };
+
   const days = DAYS.map((_, i) => addDays(weekStart, i));
 
   return (
@@ -194,7 +200,10 @@ export default function App() {
 
                   return (
                     <td key={di}>
-                      <div className={`cell ${r ? "reserved" : "free"}`}>
+                      <div
+                        className={`cell ${r ? "reserved" : "free"}`}
+                        onClick={() => !r && toggleCell(di, slot)}
+                      >
                         {r ? (
                           <>
                             <div>{r.cliente}</div>
@@ -214,6 +223,37 @@ export default function App() {
           </tbody>
         </table>
       </div>
+
+      {selected && (
+        <div className="modalBackdrop" onClick={() => setSelected(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{DAYS[selected.dayIndex]} {minutesToTime(selected.slot)}</h3>
+
+            <input className="input" placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
+            <input className="input" placeholder="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+
+            <select className="input" value={pago} onChange={(e) => setPago(e.target.value)}>
+              <option value="">Estado del pago…</option>
+              <option value="Reserva">Reserva / Seña</option>
+              <option value="Efectivo">Efectivo</option>
+              <option value="MercadoPago">MercadoPago</option>
+              <option value="Transferencia">Transferencia</option>
+            </select>
+
+            <textarea
+              className="input"
+              placeholder="Observaciones (ej: seña $5.000)"
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+            />
+
+            <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="card" onClick={reserve}>Aceptar</button>
+              <button className="card" onClick={() => setSelected(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
