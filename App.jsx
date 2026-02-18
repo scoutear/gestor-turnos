@@ -33,7 +33,6 @@ th,td{padding:6px;border-bottom:1px solid #eee}
   line-height:1.2;
 }
 
-/* COLORES */
 .free{background:#dcfce7}
 .reserved{background:#fef3c7;font-weight:600}
 
@@ -56,14 +55,6 @@ const startOfWeek = (d) => {
   date.setDate(date.getDate() - day + 1);
   date.setHours(0, 0, 0, 0);
   return date;
-};
-
-const startOfWeekFromString = (yyyyMMdd) => {
-  const d = new Date(yyyyMMdd + "T12:00:00");
-  const day = d.getDay() || 7;
-  d.setDate(d.getDate() - day + 1);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString().slice(0, 10);
 };
 
 const addDays = (d, n) => {
@@ -90,9 +81,7 @@ export default function App() {
   const [pago, setPago] = useState("");
   const [obs, setObs] = useState("");
 
-  const weekKey = startOfWeek(weekStart).toISOString().slice(0, 10);
-
-  /* ======= CARGAR ======= */
+  /* ======= CARGAR RESERVAS (FIX REAL) ======= */
   const cargarReservas = () => {
     fetch(`${API_URL}?action=reservas`)
       .then((r) => r.json())
@@ -100,9 +89,7 @@ export default function App() {
         const map = {};
 
         rows.forEach((r) => {
-          const wk = startOfWeekFromString(r.fecha);
-          const date = new Date(r.fecha + "T12:00:00");
-          const dayIndex = (date.getDay() + 6) % 7;
+          const fecha = r.fecha; // YYYY-MM-DD
           const [h, m] = r.hora.split(":").map(Number);
           const startSlot = h * 60 + m;
 
@@ -110,7 +97,7 @@ export default function App() {
             SLOTS.indexOf(startSlot),
             SLOTS.indexOf(startSlot) + 4
           ).forEach((s) => {
-            map[`${wk}_${dayIndex}_${s}`] = r;
+            map[`${fecha}_${s}`] = r;
           });
         });
 
@@ -185,7 +172,9 @@ export default function App() {
             <tr>
               <th>Hora</th>
               {days.map((d, i) => (
-                <th key={i}>{DAYS[i]} {d.getDate()}/{d.getMonth() + 1}</th>
+                <th key={i}>
+                  {DAYS[i]} {d.getDate()}/{d.getMonth() + 1}
+                </th>
               ))}
             </tr>
           </thead>
@@ -193,8 +182,9 @@ export default function App() {
             {SLOTS.map((slot) => (
               <tr key={slot}>
                 <td>{minutesToTime(slot)}</td>
-                {days.map((_, di) => {
-                  const r = reservas[`${weekKey}_${di}_${slot}`];
+                {days.map((d, di) => {
+                  const fecha = d.toISOString().slice(0, 10);
+                  const r = reservas[`${fecha}_${slot}`];
                   const senia = r ? parseSenia(r.observaciones) : 0;
                   const saldo = r ? r.monto - senia : 0;
 
