@@ -6,7 +6,7 @@ Backend: Google Apps Script + Google Sheets
 import React, { useEffect, useState } from "react";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbzSt4PbYT1qjtuehD2WlTcAYXzzUvP7ExeDVeJ2ka95whefVLRyf6LnTlzi8i1viEuv/exec";
+  "https://script.google.com/macros/s/AKfycbyjluOMaBWNFFanVpivMgulnWS9dpSmaAhR22K30TMB6bPhFpUbbqnQMdu_cktKE2wq/exec";
 
 /* ===================== ESTILOS ===================== */
 const styles = `
