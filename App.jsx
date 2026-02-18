@@ -58,6 +58,14 @@ const startOfWeek = (d) => {
   return date;
 };
 
+const startOfWeekFromString = (yyyyMMdd) => {
+  const d = new Date(yyyyMMdd + "T12:00:00");
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+};
+
 const addDays = (d, n) => {
   const r = new Date(d);
   r.setDate(r.getDate() + n);
@@ -84,7 +92,7 @@ export default function App() {
 
   const weekKey = startOfWeek(weekStart).toISOString().slice(0, 10);
 
-  /* ======= CARGAR (CORREGIDO) ======= */
+  /* ======= CARGAR (CORRECTO) ======= */
   const cargarReservas = () => {
     fetch(`${API_URL}?action=reservas`)
       .then((r) => r.json())
@@ -92,9 +100,10 @@ export default function App() {
         const map = {};
 
         rows.forEach((r) => {
-          const ws = r.fecha; // 👈 usar string directa YYYY-MM-DD
-          const dayIndex =
-            (new Date(ws + "T12:00:00").getDay() + 6) % 7;
+          const wk = startOfWeekFromString(r.fecha);
+
+          const date = new Date(r.fecha + "T12:00:00");
+          const dayIndex = (date.getDay() + 6) % 7;
 
           const [h, m] = r.hora.split(":").map(Number);
           const startSlot = h * 60 + m;
@@ -103,7 +112,7 @@ export default function App() {
             SLOTS.indexOf(startSlot),
             SLOTS.indexOf(startSlot) + 4
           ).forEach((s) => {
-            map[`${ws}_${dayIndex}_${s}`] = r;
+            map[`${wk}_${dayIndex}_${s}`] = r;
           });
         });
 
@@ -150,14 +159,6 @@ export default function App() {
     }
   };
 
-  const toggleCell = (dayIndex, slot) => {
-    setSelected({ dayIndex, slot });
-    setName("");
-    setTelefono("");
-    setPago("");
-    setObs("");
-  };
-
   const days = DAYS.map((_, i) => addDays(weekStart, i));
 
   return (
@@ -178,7 +179,7 @@ export default function App() {
             <tr>
               <th>Hora</th>
               {days.map((d, i) => (
-                <th key={i}>{DAYS[i]} {d.getDate()}</th>
+                <th key={i}>{DAYS[i]} {d.getDate()}/{d.getMonth() + 1}</th>
               ))}
             </tr>
           </thead>
@@ -193,10 +194,7 @@ export default function App() {
 
                   return (
                     <td key={di}>
-                      <div
-                        className={`cell ${r ? "reserved" : "free"}`}
-                        onClick={() => toggleCell(di, slot)}
-                      >
+                      <div className={`cell ${r ? "reserved" : "free"}`}>
                         {r ? (
                           <>
                             <div>{r.cliente}</div>
@@ -216,37 +214,6 @@ export default function App() {
           </tbody>
         </table>
       </div>
-
-      {selected && (
-        <div className="modalBackdrop" onClick={() => setSelected(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{DAYS[selected.dayIndex]} {minutesToTime(selected.slot)}</h3>
-
-            <input className="input" placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
-            <input className="input" placeholder="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
-
-            <select className="input" value={pago} onChange={(e) => setPago(e.target.value)}>
-              <option value="">Estado del pago…</option>
-              <option value="Reserva">Reserva / Seña</option>
-              <option value="Efectivo">Efectivo</option>
-              <option value="MercadoPago">MercadoPago</option>
-              <option value="Transferencia">Transferencia</option>
-            </select>
-
-            <textarea
-              className="input"
-              placeholder="Observaciones (ej: seña $5.000)"
-              value={obs}
-              onChange={(e) => setObs(e.target.value)}
-            />
-
-            <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="card" onClick={reserve}>Aceptar</button>
-              <button className="card" onClick={() => setSelected(null)}>Cerrar</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
