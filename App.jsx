@@ -19,9 +19,23 @@ body{font-family:Inter,system-ui;background:var(--bg);margin:0;padding:20px}
 .table{overflow:auto;max-height:70vh}
 table{border-collapse:collapse;width:100%}
 th,td{padding:6px;border-bottom:1px solid #eee}
-.cell{height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.free{background:#f8fafc}
-.reserved{background:#dcfce7;font-weight:600}
+
+.cell{
+  height:44px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  text-align:center;
+  font-size:12px;
+  line-height:1.2;
+}
+
+/* COLORES */
+.free{background:#dcfce7}        /* verde */
+.reserved{background:#fef3c7;font-weight:600} /* amarillo pastel */
+
 .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
 .modal{width:420px;background:#fff;padding:18px;border-radius:10px}
 .input{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;margin-top:8px}
@@ -51,6 +65,12 @@ const addDays = (d, n) => {
 
 const getPriceForSlot = (m) => (Math.floor(m / 60) < 16 ? 22000 : 30000);
 
+/* 👉 extrae número de seña desde observaciones */
+const parseSenia = (obs = "") => {
+  const match = obs.match(/(\d{3,})/);
+  return match ? Number(match[1]) : 0;
+};
+
 /* ===================== APP ===================== */
 export default function App() {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
@@ -77,6 +97,7 @@ export default function App() {
           const [h, m] = r.hora.split(":").map(Number);
           const startSlot = h * 60 + m;
 
+          /* 90 minutos = 4 celdas */
           SLOTS.slice(
             SLOTS.indexOf(startSlot),
             SLOTS.indexOf(startSlot) + 4
@@ -90,7 +111,7 @@ export default function App() {
 
   useEffect(cargarReservas, []);
 
-  /* ======= RESERVAR (FIX DEFINITIVO) ======= */
+  /* ======= RESERVAR ======= */
   const reserve = async () => {
     if (!name) return alert("Falta el nombre");
 
@@ -118,7 +139,7 @@ export default function App() {
       const text = await res.text();
       const data = JSON.parse(text);
 
-      if (!data.ok) throw new Error(data.error || "Error backend");
+      if (!data.ok) throw new Error();
 
       setSelected(null);
       setName("");
@@ -127,8 +148,7 @@ export default function App() {
       setObs("");
       cargarReservas();
 
-    } catch (err) {
-      console.error("ERROR RESERVA:", err);
+    } catch {
       alert("No se pudo guardar la reserva");
     }
   };
@@ -171,13 +191,25 @@ export default function App() {
                 <td>{minutesToTime(slot)}</td>
                 {days.map((_, di) => {
                   const r = reservas[`${weekKey}_${di}_${slot}`];
+                  const senia = r ? parseSenia(r.observaciones) : 0;
+                  const saldo = r ? r.monto - senia : 0;
+
                   return (
                     <td key={di}>
                       <div
                         className={`cell ${r ? "reserved" : "free"}`}
                         onClick={() => toggleCell(di, slot)}
                       >
-                        {r ? r.cliente : "LIBRE"}
+                        {r ? (
+                          <>
+                            <div>{r.cliente}</div>
+                            {r.medio_pago === "Reserva" && saldo > 0 && (
+                              <div>${saldo} pendiente</div>
+                            )}
+                          </>
+                        ) : (
+                          "LIBRE"
+                        )}
                       </div>
                     </td>
                   );
