@@ -59,13 +59,12 @@ export default function App() {
 
   const [name, setName] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [medioPago, setMedioPago] = useState("");
-  const [estado, setEstado] = useState("Reserva");
+  const [pago, setPago] = useState("");
   const [obs, setObs] = useState("");
 
   const weekKey = weekStart.toISOString().slice(0, 10);
 
-  /* ======= CARGAR RESERVAS ======= */
+  /* ======= CARGAR ======= */
   const cargarReservas = () => {
     fetch(`${API_URL}?action=reservas`)
       .then((r) => r.json())
@@ -98,32 +97,30 @@ export default function App() {
     const { dayIndex, slot } = selected;
     const fecha = addDays(weekStart, dayIndex).toISOString().slice(0, 10);
 
-    const payload = {
-      action: "reservar",
-      fecha,
-      hora: minutesToTime(slot),
-      cliente: name,
-      telefono,
-      estado,
-      medio_pago: medioPago,
-      monto: getPriceForSlot(slot),
-      observaciones: obs
-    };
-
     try {
-      await fetch(API_URL, {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          action: "reservar",
+          fecha,
+          hora: minutesToTime(slot),
+          cliente: name,
+          telefono,
+          medio_pago: pago || "Reserva",
+          monto: getPriceForSlot(slot),
+          observaciones: obs,
+        }),
       });
+
+      const json = await res.json();
+      if (!json.ok) throw new Error();
 
       setSelected(null);
       setName("");
       setTelefono("");
-      setMedioPago("");
-      setEstado("Reserva");
+      setPago("");
       setObs("");
-
       cargarReservas();
     } catch {
       alert("No se pudo guardar la reserva");
@@ -134,8 +131,7 @@ export default function App() {
     setSelected({ dayIndex, slot });
     setName("");
     setTelefono("");
-    setMedioPago("");
-    setEstado("Reserva");
+    setPago("");
     setObs("");
   };
 
@@ -194,13 +190,9 @@ export default function App() {
             <input className="input" placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
             <input className="input" placeholder="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
 
-            <select className="input" value={estado} onChange={(e) => setEstado(e.target.value)}>
+            <select className="input" value={pago} onChange={(e) => setPago(e.target.value)}>
+              <option value="">Estado del pago…</option>
               <option value="Reserva">Reserva / Seña</option>
-              <option value="Pagado">Pagado</option>
-            </select>
-
-            <select className="input" value={medioPago} onChange={(e) => setMedioPago(e.target.value)}>
-              <option value="">Medio de pago…</option>
               <option value="Efectivo">Efectivo</option>
               <option value="MercadoPago">MercadoPago</option>
               <option value="Transferencia">Transferencia</option>
@@ -208,7 +200,7 @@ export default function App() {
 
             <textarea
               className="input"
-              placeholder="Observaciones (ej: seña $10.000)"
+              placeholder="Observaciones (ej: seña $5.000)"
               value={obs}
               onChange={(e) => setObs(e.target.value)}
             />
