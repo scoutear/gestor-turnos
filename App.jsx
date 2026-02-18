@@ -60,12 +60,12 @@ export default function App() {
   const [name, setName] = useState("");
   const [telefono, setTelefono] = useState("");
   const [medioPago, setMedioPago] = useState("");
-  const [estado, setEstado] = useState("reservado");
+  const [estado, setEstado] = useState("Reserva");
   const [obs, setObs] = useState("");
 
   const weekKey = weekStart.toISOString().slice(0, 10);
 
-  /* ======= CARGAR ======= */
+  /* ======= CARGAR RESERVAS ======= */
   const cargarReservas = () => {
     fetch(`${API_URL}?action=reservas`)
       .then((r) => r.json())
@@ -98,21 +98,32 @@ export default function App() {
     const { dayIndex, slot } = selected;
     const fecha = addDays(weekStart, dayIndex).toISOString().slice(0, 10);
 
-    const fd = new FormData();
-    fd.append("action", "reservar");
-    fd.append("fecha", fecha);
-    fd.append("hora", minutesToTime(slot));
-    fd.append("cliente", name);
-    fd.append("telefono", telefono);
-    fd.append("estado", estado);
-    fd.append("medio_pago", medioPago || "");
-    fd.append("monto", getPriceForSlot(slot));
-    fd.append("observaciones", obs);
+    const payload = {
+      action: "reservar",
+      fecha,
+      hora: minutesToTime(slot),
+      cliente: name,
+      telefono,
+      estado,
+      medio_pago: medioPago,
+      monto: getPriceForSlot(slot),
+      observaciones: obs
+    };
 
     try {
-      await fetch(API_URL, { method: "POST", body: fd });
+      await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
       setSelected(null);
+      setName("");
+      setTelefono("");
+      setMedioPago("");
+      setEstado("Reserva");
       setObs("");
+
       cargarReservas();
     } catch {
       alert("No se pudo guardar la reserva");
@@ -124,7 +135,7 @@ export default function App() {
     setName("");
     setTelefono("");
     setMedioPago("");
-    setEstado("reservado");
+    setEstado("Reserva");
     setObs("");
   };
 
@@ -184,8 +195,8 @@ export default function App() {
             <input className="input" placeholder="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
 
             <select className="input" value={estado} onChange={(e) => setEstado(e.target.value)}>
-              <option value="reservado">Reserva / Seña</option>
-              <option value="pagado">Pagado</option>
+              <option value="Reserva">Reserva / Seña</option>
+              <option value="Pagado">Pagado</option>
             </select>
 
             <select className="input" value={medioPago} onChange={(e) => setMedioPago(e.target.value)}>
@@ -197,13 +208,13 @@ export default function App() {
 
             <textarea
               className="input"
-              placeholder="Observaciones (ej: seña $5.000)"
+              placeholder="Observaciones (ej: seña $10.000)"
               value={obs}
               onChange={(e) => setObs(e.target.value)}
             />
 
             <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="card" onClick={reserve}>Reservar</button>
+              <button className="card" onClick={reserve}>Aceptar</button>
               <button className="card" onClick={() => setSelected(null)}>Cerrar</button>
             </div>
           </div>
