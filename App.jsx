@@ -24,6 +24,7 @@ th,td{padding:6px;border-bottom:1px solid #eee}
   height:44px;
   border-radius:8px;
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
   cursor:pointer;
@@ -33,7 +34,7 @@ th,td{padding:6px;border-bottom:1px solid #eee}
 }
 
 /* COLORES */
-.free{background:#dcfce7}        /* verde */
+.free{background:#dcfce7}               /* verde */
 .reserved{background:#fef3c7;font-weight:600} /* amarillo pastel */
 
 .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
@@ -65,7 +66,7 @@ const addDays = (d, n) => {
 
 const getPriceForSlot = (m) => (Math.floor(m / 60) < 16 ? 22000 : 30000);
 
-/* 👉 extrae número de seña desde observaciones */
+/* extrae número de seña desde observaciones */
 const parseSenia = (obs = "") => {
   const match = obs.match(/(\d{3,})/);
   return match ? Number(match[1]) : 0;
@@ -82,7 +83,8 @@ export default function App() {
   const [pago, setPago] = useState("");
   const [obs, setObs] = useState("");
 
-  const weekKey = weekStart.toISOString().slice(0, 10);
+  /* 🔑 CLAVE CORREGIDA */
+  const weekKey = startOfWeek(weekStart).toISOString().slice(0, 10);
 
   /* ======= CARGAR ======= */
   const cargarReservas = () => {
@@ -109,7 +111,7 @@ export default function App() {
       });
   };
 
-  useEffect(cargarReservas, []);
+  useEffect(cargarReservas, [weekStart]);
 
   /* ======= RESERVAR ======= */
   const reserve = async () => {
@@ -121,9 +123,7 @@ export default function App() {
     try {
       const res = await fetch(API_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8",
-        },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
           action: "reservar",
           fecha,
@@ -136,9 +136,7 @@ export default function App() {
         }),
       });
 
-      const text = await res.text();
-      const data = JSON.parse(text);
-
+      const data = JSON.parse(await res.text());
       if (!data.ok) throw new Error();
 
       setSelected(null);
