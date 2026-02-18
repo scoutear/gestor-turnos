@@ -34,8 +34,8 @@ th,td{padding:6px;border-bottom:1px solid #eee}
 }
 
 /* COLORES */
-.free{background:#dcfce7}               /* verde */
-.reserved{background:#fef3c7;font-weight:600} /* amarillo pastel */
+.free{background:#dcfce7}
+.reserved{background:#fef3c7;font-weight:600}
 
 .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
 .modal{width:420px;background:#fff;padding:18px;border-radius:10px}
@@ -66,7 +66,6 @@ const addDays = (d, n) => {
 
 const getPriceForSlot = (m) => (Math.floor(m / 60) < 16 ? 22000 : 30000);
 
-/* extrae número de seña desde observaciones */
 const parseSenia = (obs = "") => {
   const match = obs.match(/(\d{3,})/);
   return match ? Number(match[1]) : 0;
@@ -83,23 +82,23 @@ export default function App() {
   const [pago, setPago] = useState("");
   const [obs, setObs] = useState("");
 
-  /* 🔑 CLAVE CORREGIDA */
   const weekKey = startOfWeek(weekStart).toISOString().slice(0, 10);
 
-  /* ======= CARGAR ======= */
+  /* ======= CARGAR (CORREGIDO) ======= */
   const cargarReservas = () => {
     fetch(`${API_URL}?action=reservas`)
       .then((r) => r.json())
       .then((rows) => {
         const map = {};
+
         rows.forEach((r) => {
-          const date = new Date(r.fecha);
-          const ws = startOfWeek(date).toISOString().slice(0, 10);
-          const dayIndex = (date.getDay() + 6) % 7;
+          const ws = r.fecha; // 👈 usar string directa YYYY-MM-DD
+          const dayIndex =
+            (new Date(ws + "T12:00:00").getDay() + 6) % 7;
+
           const [h, m] = r.hora.split(":").map(Number);
           const startSlot = h * 60 + m;
 
-          /* 90 minutos = 4 celdas */
           SLOTS.slice(
             SLOTS.indexOf(startSlot),
             SLOTS.indexOf(startSlot) + 4
@@ -107,6 +106,7 @@ export default function App() {
             map[`${ws}_${dayIndex}_${s}`] = r;
           });
         });
+
         setReservas(map);
       });
   };
@@ -145,7 +145,6 @@ export default function App() {
       setPago("");
       setObs("");
       cargarReservas();
-
     } catch {
       alert("No se pudo guardar la reserva");
     }
