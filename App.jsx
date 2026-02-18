@@ -90,7 +90,7 @@ export default function App() {
 
   useEffect(cargarReservas, []);
 
-  /* ======= RESERVAR ======= */
+  /* ======= RESERVAR (FIX DEFINITIVO) ======= */
   const reserve = async () => {
     if (!name) return alert("Falta el nombre");
 
@@ -100,7 +100,9 @@ export default function App() {
     try {
       const res = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8",
+        },
         body: JSON.stringify({
           action: "reservar",
           fecha,
@@ -113,8 +115,10 @@ export default function App() {
         }),
       });
 
-      const json = await res.json();
-      if (!json.ok) throw new Error();
+      const text = await res.text();
+      const data = JSON.parse(text);
+
+      if (!data.ok) throw new Error(data.error || "Error backend");
 
       setSelected(null);
       setName("");
@@ -122,7 +126,9 @@ export default function App() {
       setPago("");
       setObs("");
       cargarReservas();
-    } catch {
+
+    } catch (err) {
+      console.error("ERROR RESERVA:", err);
       alert("No se pudo guardar la reserva");
     }
   };
