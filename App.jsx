@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
 
-const API_URL =
-  "https://script.google.com/macros/s/AKfycby0yAI9GTxAb2ADZ6TFNJu-xYoHG6P44tlMk8X2lLRJUYMXr1dIQ213Bsp6OL1gv94V/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwU1x6NRHcKPjUfKopkDHOl5TJg7hPgfKqGfZ8eclC95mGD1VjIPlgaUXxBEC3x8U4/exec";
 
 /* ===================== ESTILOS ===================== */
 const styles = `
 body{font-family:Inter,system-ui;background:#f7fafc;margin:0;padding:20px}
 .app{max-width:1200px;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(2,6,23,0.06);cursor:pointer}
+.header{margin-bottom:14px}
+.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
 .table{overflow:auto;max-height:70vh}
 table{border-collapse:collapse;width:100%}
 th,td{padding:6px;border-bottom:1px solid #eee}
@@ -17,11 +16,10 @@ th,td{padding:6px;border-bottom:1px solid #eee}
   height:44px;
   border-radius:8px;
   display:flex;
-  flex-direction:column;
   align-items:center;
   justify-content:center;
-  cursor:pointer;
   font-size:12px;
+  cursor:pointer;
 }
 
 .free{background:#dcfce7}
@@ -30,32 +28,26 @@ th,td{padding:6px;border-bottom:1px solid #eee}
 .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
 .modal{width:420px;background:#fff;padding:18px;border-radius:10px}
 .input{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;margin-top:8px}
-textarea{resize:none}
 `;
 
 const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const SLOTS = Array.from({ length: 34 }, (_, i) => 7 * 60 + i * 30);
 
-const minutesToTime = (m) =>
-  `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const minutesToTime = m =>
+  `${String(Math.floor(m / 60)).padStart(2,"0")}:${String(m % 60).padStart(2,"0")}`;
 
-const startOfWeek = (d) => {
-  const date = new Date(d);
-  const day = date.getDay() || 7;
-  date.setDate(date.getDate() - day + 1);
-  date.setHours(0,0,0,0);
-  return date;
-};
-
-const addDays = (d, n) => {
+const startOfWeek = d => {
   const r = new Date(d);
-  r.setDate(r.getDate() + n);
+  const day = r.getDay() || 7;
+  r.setDate(r.getDate() - day + 1);
+  r.setHours(0,0,0,0);
   return r;
 };
 
-const parseSenia = (obs="") => {
-  const m = obs.match(/(\d{3,})/);
-  return m ? Number(m[1]) : 0;
+const addDays = (d,n) => {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
 };
 
 export default function App() {
@@ -64,73 +56,56 @@ export default function App() {
   const [selected, setSelected] = useState(null);
 
   const [name, setName] = useState("");
-  const [telefono, setTelefono] = useState("");
+  const [tel, setTel] = useState("");
   const [pago, setPago] = useState("");
   const [obs, setObs] = useState("");
 
-  /* ================= CARGAR RESERVAS ================= */
-  const cargarReservas = async () => {
-    const res = await fetch(`${API_URL}?action=reservas`);
-    const rows = await res.json();
+  const cargarReservas = () => {
+    fetch(`${API_URL}?action=reservas`)
+      .then(r => r.json())
+      .then(rows => {
+        const map = {};
+        rows.forEach(r => {
+          const [h,m] = r.hora.split(":").map(Number);
+          const start = h*60 + m;
+          const idx = SLOTS.indexOf(start);
+          if (idx === -1) return;
 
-    const map = {};
-    const weekEnd = addDays(weekStart, 7);
-
-    rows.forEach(r => {
-      const fecha = new Date(r.fecha);
-      if (fecha < weekStart || fecha >= weekEnd) return;
-
-      const [h,m] = r.hora.split(":").map(Number);
-      const start = h*60 + m;
-      const idx = SLOTS.indexOf(start);
-      if (idx === -1) return;
-
-      SLOTS.slice(idx, idx+4).forEach(slot => {
-        map[`${r.fecha}_${slot}`] = r;
+          SLOTS.slice(idx, idx+4).forEach(s => {
+            map[`${r.fecha}_${s}`] = r;
+          });
+        });
+        setReservas(map);
       });
-    });
-
-    setReservas(map);
   };
 
-  useEffect(() => { cargarReservas(); }, []);
+  useEffect(cargarReservas, []);
 
-  /* ================= RESERVAR ================= */
-  const reserve = async () => {
-    if (!name) return alert("Falta nombre");
-
+  const reservar = async () => {
     const fecha = addDays(weekStart, selected.dayIndex)
       .toISOString().slice(0,10);
 
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          action: "reservar",
-          fecha,
-          hora: minutesToTime(selected.slot),
-          cliente: name,
-          telefono,
-          medio_pago: pago || "Reserva",
-          monto: 30000,
-          observaciones: obs
-        })
-      });
+    const res = await fetch(API_URL, {
+      method:"POST",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action:"reservar",
+        fecha,
+        hora: minutesToTime(selected.slot),
+        cliente:name,
+        telefono:tel,
+        medio_pago:pago,
+        monto:30000,
+        observaciones:obs
+      })
+    });
 
-      if (!res.ok) throw new Error("HTTP error");
+    const data = await res.json();
+    if (!data.ok) return alert(data.error);
 
-      // ÉXITO REAL
-      setSelected(null);
-      setName("");
-      setTelefono("");
-      setPago("");
-      setObs("");
-      cargarReservas();
-
-    } catch (err) {
-      alert("Error al guardar la reserva");
-    }
+    setSelected(null);
+    setName(""); setTel(""); setPago(""); setObs("");
+    cargarReservas();
   };
 
   const days = DAYS.map((_,i)=>addDays(weekStart,i));
@@ -138,19 +113,16 @@ export default function App() {
   return (
     <div className="app">
       <style>{styles}</style>
-
-      <div className="header">
-        <h2>Gestor de Turnos — Pádel</h2>
-      </div>
+      <div className="header"><h2>Gestor de Turnos — Pádel</h2></div>
 
       <div className="card table">
         <table>
           <thead>
             <tr>
               <th>Hora</th>
-              {days.map((d,i)=>(
+              {days.map((d,i)=>
                 <th key={i}>{DAYS[i]} {d.getDate()}/{d.getMonth()+1}</th>
-              ))}
+              )}
             </tr>
           </thead>
           <tbody>
@@ -160,21 +132,13 @@ export default function App() {
                 {days.map((d,di)=>{
                   const fecha = d.toISOString().slice(0,10);
                   const r = reservas[`${fecha}_${slot}`];
-                  const saldo = r ? r.monto - parseSenia(r.observaciones) : 0;
-
                   return (
                     <td key={di}>
                       <div
-                        className={`cell ${r ? "reserved" : "free"}`}
-                        onClick={() => !r && setSelected({dayIndex:di, slot})}
+                        className={`cell ${r?"reserved":"free"}`}
+                        onClick={()=>!r && setSelected({dayIndex:di,slot})}
                       >
-                        {r ? (
-                          <>
-                            <div>{r.cliente}</div>
-                            {r.medio_pago==="Reserva" && saldo>0 &&
-                              <div>${saldo} pendiente</div>}
-                          </>
-                        ) : "LIBRE"}
+                        {r ? r.cliente : "LIBRE"}
                       </div>
                     </td>
                   );
@@ -191,22 +155,10 @@ export default function App() {
             <h3>{DAYS[selected.dayIndex]} {minutesToTime(selected.slot)}</h3>
 
             <input className="input" placeholder="Nombre" value={name} onChange={e=>setName(e.target.value)} />
-            <input className="input" placeholder="Teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} />
+            <input className="input" placeholder="Teléfono" value={tel} onChange={e=>setTel(e.target.value)} />
+            <textarea className="input" placeholder="Obs" value={obs} onChange={e=>setObs(e.target.value)} />
 
-            <select className="input" value={pago} onChange={e=>setPago(e.target.value)}>
-              <option value="">Estado del pago</option>
-              <option value="Reserva">Reserva / Seña</option>
-              <option value="Efectivo">Efectivo</option>
-              <option value="MercadoPago">MercadoPago</option>
-              <option value="Transferencia">Transferencia</option>
-            </select>
-
-            <textarea className="input" placeholder="Observaciones" value={obs} onChange={e=>setObs(e.target.value)} />
-
-            <div style={{marginTop:12,display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button className="card" onClick={reserve}>Aceptar</button>
-              <button className="card" onClick={()=>setSelected(null)}>Cerrar</button>
-            </div>
+            <button className="card" onClick={reservar}>Aceptar</button>
           </div>
         </div>
       )}
