@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbyTfSN50EXkN1iv45ueaAV03k2e_fuJ5vX_8dzKmkuc8p-xHtkAmbQsc6JpnVv3Balh/exec";
+  "https://script.google.com/macros/s/AKfycby0yAI9GTxAb2ADZ6TFNJu-xYoHG6P44tlMk8X2lLRJUYMXr1dIQ213Bsp6OL1gv94V/exec";
 
 /* ===================== ESTILOS ===================== */
 const styles = `
