@@ -43,7 +43,7 @@ const startOfWeek = (d) => {
   const date = new Date(d);
   const day = date.getDay() || 7;
   date.setDate(date.getDate() - day + 1);
-  date.setHours(0, 0, 0, 0);
+  date.setHours(0,0,0,0);
   return date;
 };
 
@@ -53,17 +53,9 @@ const addDays = (d, n) => {
   return r;
 };
 
-const parseSenia = (obs = "") => {
+const parseSenia = (obs="") => {
   const m = obs.match(/(\d{3,})/);
   return m ? Number(m[1]) : 0;
-};
-
-const normalizeFecha = (f) =>
-  new Date(f).toISOString().slice(0, 10);
-
-const horaToMinutes = (h) => {
-  const d = new Date(h);
-  return d.getHours() * 60 + d.getMinutes();
 };
 
 export default function App() {
@@ -80,7 +72,6 @@ export default function App() {
   const cargarReservas = async () => {
     const res = await fetch(`${API_URL}?action=reservas`);
     const rows = await res.json();
-    if (!Array.isArray(rows)) return;
 
     const map = {};
     const weekEnd = addDays(weekStart, 7);
@@ -89,35 +80,32 @@ export default function App() {
       const fecha = new Date(r.fecha);
       if (fecha < weekStart || fecha >= weekEnd) return;
 
-      const fechaKey = normalizeFecha(r.fecha);
-      const start = horaToMinutes(r.hora);
+      const [h,m] = r.hora.split(":").map(Number);
+      const start = h*60 + m;
       const idx = SLOTS.indexOf(start);
       if (idx === -1) return;
 
-      // 90 minutos = 4 slots
-      SLOTS.slice(idx, idx + 4).forEach(slot => {
-        map[`${fechaKey}_${slot}`] = r;
+      SLOTS.slice(idx, idx+4).forEach(slot => {
+        map[`${r.fecha}_${slot}`] = r;
       });
     });
 
     setReservas(map);
   };
 
-  useEffect(() => {
-    cargarReservas();
-  }, []);
+  useEffect(() => { cargarReservas(); }, []);
 
   /* ================= RESERVAR ================= */
   const reserve = async () => {
     if (!name) return alert("Falta nombre");
 
     const fecha = addDays(weekStart, selected.dayIndex)
-      .toISOString().slice(0, 10);
+      .toISOString().slice(0,10);
 
     try {
       const res = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
           action: "reservar",
           fecha,
@@ -130,22 +118,22 @@ export default function App() {
         })
       });
 
-      const data = await res.json();
-      if (!data.ok) throw new Error();
+      if (!res.ok) throw new Error("HTTP error");
 
+      // ÉXITO REAL
       setSelected(null);
       setName("");
       setTelefono("");
       setPago("");
       setObs("");
+      cargarReservas();
 
-      await cargarReservas();
-    } catch {
+    } catch (err) {
       alert("Error al guardar la reserva");
     }
   };
 
-  const days = DAYS.map((_, i) => addDays(weekStart, i));
+  const days = DAYS.map((_,i)=>addDays(weekStart,i));
 
   return (
     <div className="app">
@@ -160,17 +148,17 @@ export default function App() {
           <thead>
             <tr>
               <th>Hora</th>
-              {days.map((d, i) => (
-                <th key={i}>{DAYS[i]} {d.getDate()}/{d.getMonth() + 1}</th>
+              {days.map((d,i)=>(
+                <th key={i}>{DAYS[i]} {d.getDate()}/{d.getMonth()+1}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {SLOTS.map(slot => (
+            {SLOTS.map(slot=>(
               <tr key={slot}>
                 <td>{minutesToTime(slot)}</td>
-                {days.map((d, di) => {
-                  const fecha = d.toISOString().slice(0, 10);
+                {days.map((d,di)=>{
+                  const fecha = d.toISOString().slice(0,10);
                   const r = reservas[`${fecha}_${slot}`];
                   const saldo = r ? r.monto - parseSenia(r.observaciones) : 0;
 
@@ -178,12 +166,12 @@ export default function App() {
                     <td key={di}>
                       <div
                         className={`cell ${r ? "reserved" : "free"}`}
-                        onClick={() => !r && setSelected({ dayIndex: di, slot })}
+                        onClick={() => !r && setSelected({dayIndex:di, slot})}
                       >
                         {r ? (
                           <>
                             <div>{r.cliente}</div>
-                            {r.medio_pago === "Reserva" && saldo > 0 &&
+                            {r.medio_pago==="Reserva" && saldo>0 &&
                               <div>${saldo} pendiente</div>}
                           </>
                         ) : "LIBRE"}
@@ -198,14 +186,14 @@ export default function App() {
       </div>
 
       {selected && (
-        <div className="modalBackdrop" onClick={() => setSelected(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modalBackdrop" onClick={()=>setSelected(null)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
             <h3>{DAYS[selected.dayIndex]} {minutesToTime(selected.slot)}</h3>
 
-            <input className="input" placeholder="Nombre" value={name} onChange={e => setName(e.target.value)} />
-            <input className="input" placeholder="Teléfono" value={telefono} onChange={e => setTelefono(e.target.value)} />
+            <input className="input" placeholder="Nombre" value={name} onChange={e=>setName(e.target.value)} />
+            <input className="input" placeholder="Teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} />
 
-            <select className="input" value={pago} onChange={e => setPago(e.target.value)}>
+            <select className="input" value={pago} onChange={e=>setPago(e.target.value)}>
               <option value="">Estado del pago</option>
               <option value="Reserva">Reserva / Seña</option>
               <option value="Efectivo">Efectivo</option>
@@ -213,11 +201,11 @@ export default function App() {
               <option value="Transferencia">Transferencia</option>
             </select>
 
-            <textarea className="input" placeholder="Observaciones" value={obs} onChange={e => setObs(e.target.value)} />
+            <textarea className="input" placeholder="Observaciones" value={obs} onChange={e=>setObs(e.target.value)} />
 
-            <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <div style={{marginTop:12,display:"flex",gap:8,justifyContent:"flex-end"}}>
               <button className="card" onClick={reserve}>Aceptar</button>
-              <button className="card" onClick={() => setSelected(null)}>Cerrar</button>
+              <button className="card" onClick={()=>setSelected(null)}>Cerrar</button>
             </div>
           </div>
         </div>
