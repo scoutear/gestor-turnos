@@ -16,6 +16,7 @@ th,td{padding:6px;border-bottom:1px solid #eee}
   height:44px;
   border-radius:8px;
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
   font-size:12px;
@@ -28,6 +29,7 @@ th,td{padding:6px;border-bottom:1px solid #eee}
 .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
 .modal{width:420px;background:#fff;padding:18px;border-radius:10px}
 .input{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;margin-top:8px}
+textarea{resize:none}
 `;
 
 const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -57,9 +59,11 @@ export default function App() {
 
   const [name, setName] = useState("");
   const [tel, setTel] = useState("");
-  const [pago, setPago] = useState("");
+  const [pago, setPago] = useState("Reserva");
+  const [senia, setSenia] = useState("");
   const [obs, setObs] = useState("");
 
+  /* ======= CARGAR ======= */
   const cargarReservas = () => {
     fetch(`${API_URL}?action=reservas`)
       .then(r => r.json())
@@ -81,9 +85,15 @@ export default function App() {
 
   useEffect(cargarReservas, []);
 
+  /* ======= RESERVAR ======= */
   const reservar = async () => {
+    if (!name) return alert("Falta el nombre");
+
     const fecha = addDays(weekStart, selected.dayIndex)
       .toISOString().slice(0,10);
+
+    const observaciones =
+      senia ? `Seña $${senia}${obs ? " - " + obs : ""}` : obs;
 
     const res = await fetch(API_URL, {
       method:"POST",
@@ -96,15 +106,15 @@ export default function App() {
         telefono:tel,
         medio_pago:pago,
         monto:30000,
-        observaciones:obs
+        observaciones
       })
     });
 
     const data = await res.json();
-    if (!data.ok) return alert(data.error);
+    if (!data.ok) return alert("Error al guardar");
 
     setSelected(null);
-    setName(""); setTel(""); setPago(""); setObs("");
+    setName(""); setTel(""); setPago("Reserva"); setSenia(""); setObs("");
     cargarReservas();
   };
 
@@ -113,16 +123,19 @@ export default function App() {
   return (
     <div className="app">
       <style>{styles}</style>
-      <div className="header"><h2>Gestor de Turnos — Pádel</h2></div>
+
+      <div className="header">
+        <h2>Gestor de Turnos — Pádel</h2>
+      </div>
 
       <div className="card table">
         <table>
           <thead>
             <tr>
               <th>Hora</th>
-              {days.map((d,i)=>
+              {days.map((d,i)=>(
                 <th key={i}>{DAYS[i]} {d.getDate()}/{d.getMonth()+1}</th>
-              )}
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -156,7 +169,23 @@ export default function App() {
 
             <input className="input" placeholder="Nombre" value={name} onChange={e=>setName(e.target.value)} />
             <input className="input" placeholder="Teléfono" value={tel} onChange={e=>setTel(e.target.value)} />
-            <textarea className="input" placeholder="Obs" value={obs} onChange={e=>setObs(e.target.value)} />
+
+            <select className="input" value={pago} onChange={e=>setPago(e.target.value)}>
+              <option value="Reserva">Reserva / Seña</option>
+              <option value="Efectivo">Efectivo</option>
+              <option value="MercadoPago">MercadoPago</option>
+              <option value="Transferencia">Transferencia</option>
+            </select>
+
+            <input
+              className="input"
+              placeholder="Seña (opcional)"
+              type="number"
+              value={senia}
+              onChange={e=>setSenia(e.target.value)}
+            />
+
+            <textarea className="input" placeholder="Observaciones" value={obs} onChange={e=>setObs(e.target.value)} />
 
             <button className="card" onClick={reservar}>Aceptar</button>
           </div>
