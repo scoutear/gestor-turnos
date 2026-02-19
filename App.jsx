@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 const API_URL =
   "https://script.google.com/macros/s/AKfycby0yAI9GTxAb2ADZ6TFNJu-xYoHG6P44tlMk8X2lLRJUYMXr1dIQ213Bsp6OL1gv94V/exec";
 
-/* ===================== ESTILOS ===================== */
 const styles = `
 body{font-family:Inter,system-ui;background:#f7fafc;margin:0;padding:20px}
 .app{max-width:1200px;margin:0 auto}
@@ -33,14 +32,13 @@ th,td{padding:6px;border-bottom:1px solid #eee;text-align:center}
 textarea{resize:none}
 `;
 
-/* ===================== HELPERS ===================== */
 const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const SLOTS = Array.from({ length: 34 }, (_, i) => 7 * 60 + i * 30);
 
-const minutesToTime = (m) =>
-  `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const minutesToTime = m =>
+  `${String(Math.floor(m / 60)).padStart(2,"0")}:${String(m % 60).padStart(2,"0")}`;
 
-const startOfWeek = (d) => {
+const startOfWeek = d => {
   const date = new Date(d);
   const day = date.getDay() || 7;
   date.setDate(date.getDate() - day + 1);
@@ -48,18 +46,12 @@ const startOfWeek = (d) => {
   return date;
 };
 
-const addDays = (d, n) => {
+const addDays = (d,n) => {
   const r = new Date(d);
-  r.setDate(r.getDate() + n);
+  r.setDate(r.getDate()+n);
   return r;
 };
 
-const parseSenia = (obs="") => {
-  const m = obs.match(/(\d{3,})/);
-  return m ? Number(m[1]) : 0;
-};
-
-/* ===================== APP ===================== */
 export default function App() {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
   const [reservas, setReservas] = useState({});
@@ -70,13 +62,10 @@ export default function App() {
   const [pago, setPago] = useState("");
   const [obs, setObs] = useState("");
 
-  /* ================= CARGAR RESERVAS ================= */
   const cargarReservas = () => {
     fetch(`${API_URL}?action=reservas`)
       .then(r => r.json())
       .then(rows => {
-        if (!Array.isArray(rows)) return;
-
         const map = {};
         const weekEnd = addDays(weekStart, 7);
 
@@ -89,7 +78,6 @@ export default function App() {
           const idx = SLOTS.indexOf(start);
           if (idx === -1) return;
 
-          // 90 min = 4 celdas
           SLOTS.slice(idx, idx+4).forEach(slot => {
             map[`${r.fecha}_${slot}`] = r;
           });
@@ -101,30 +89,29 @@ export default function App() {
 
   useEffect(cargarReservas, [weekStart]);
 
-  /* ================= RESERVAR ================= */
   const reserve = async () => {
     if (!name) return alert("Falta nombre");
 
     const fecha = addDays(weekStart, selected.dayIndex)
       .toISOString().slice(0,10);
 
-    const res = await fetch(API_URL,{
-      method:"POST",
-      headers:{ "Content-Type":"text/plain;charset=utf-8" },
-      body:JSON.stringify({
-        action:"reservar",
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "reservar",
         fecha,
         hora: minutesToTime(selected.slot),
-        cliente:name,
+        cliente: name,
         telefono,
-        medio_pago:pago||"Reserva",
-        monto:30000,
-        observaciones:obs
+        medio_pago: pago || "Reserva",
+        monto: 30000,
+        observaciones: obs
       })
     });
 
     const data = JSON.parse(await res.text());
-    if(!data.ok) return alert("Error al guardar");
+    if (!data.ok) return alert("Error al guardar");
 
     setSelected(null);
     setName(""); setTelefono(""); setPago(""); setObs("");
@@ -162,13 +149,9 @@ export default function App() {
                 {days.map((d,di)=>{
                   const fecha = d.toISOString().slice(0,10);
                   const r = reservas[`${fecha}_${slot}`];
-                  const saldo = r ? r.monto - parseSenia(r.observaciones) : 0;
 
                   const tooltip = r
-                    ? `${r.cliente}
-Tel: ${r.telefono || "-"}
-Pago: ${r.medio_pago || "-"}
-Obs: ${r.observaciones || "-"}`
+                    ? `${r.cliente} | Tel: ${r.telefono || "-"} | Pago: ${r.medio_pago || "-"} | Obs: ${r.observaciones || "-"}`
                     : "";
 
                   return (
@@ -178,13 +161,7 @@ Obs: ${r.observaciones || "-"}`
                         className={`cell ${r?"reserved":"free"}`}
                         onClick={()=>!r && setSelected({dayIndex:di,slot})}
                       >
-                        {r ? (
-                          <>
-                            <div>{r.cliente}</div>
-                            {r.medio_pago==="Reserva" && saldo>0 &&
-                              <div>${saldo} pendiente</div>}
-                          </>
-                        ) : "LIBRE"}
+                        {r ? r.cliente : "LIBRE"}
                       </div>
                     </td>
                   );
